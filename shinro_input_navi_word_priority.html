@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>進路入力判定ナビ</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #dbe2ea;
+      --primary: #1d4ed8;
+      --primary-soft: #dbeafe;
+      --success: #047857;
+      --success-soft: #d1fae5;
+      --warning: #b45309;
+      --warning-soft: #fef3c7;
+      --danger: #b91c1c;
+      --danger-soft: #fee2e2;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+    .hero {
+      background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+      border: 1px solid #dbeafe;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    h1 {
+      margin: 12px 0 8px;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.2;
+    }
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+    .subtle {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .controls {
+      display: grid;
+      gap: 12px;
+    }
+    .field-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    input[type="text"] {
+      flex: 1 1 300px;
+      min-width: 0;
+      height: 46px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      font-size: 15px;
+      background: #fff;
+      color: var(--text);
+    }
+    input[type="text"]:focus {
+      outline: 2px solid #bfdbfe;
+      border-color: #93c5fd;
+    }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    .primary-btn {
+      background: var(--primary);
+      color: #fff;
+    }
+    .ghost-btn {
+      background: #eef2f7;
+      color: var(--text);
+    }
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .chip.active {
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-color: #bfdbfe;
+    }
+    .quick-groups {
+      display: grid;
+      gap: 12px;
+    }
+    .group-title {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .result-header {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .badge.progress {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+    .badge.job {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+    .badge.other {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+    .keyword {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+    .rule-box {
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      background: #fafcff;
+    }
+    .rule-box.warning {
+      background: var(--warning-soft);
+      border-color: #fde68a;
+    }
+    .rule-box.danger {
+      background: var(--danger-soft);
+      border-color: #fecaca;
+    }
+    .kv-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+    }
+    .kv-table th,
+    .kv-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 14px;
+    }
+    .kv-table th {
+      width: 30%;
+      background: #f8fafc;
+      text-align: left;
+    }
+    .kv-table tr:last-child th,
+    .kv-table tr:last-child td {
+      border-bottom: 0;
+    }
+    .empty {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .list {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .list li {
+      margin-bottom: 8px;
+    }
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .match-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .match-btn {
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    @media (max-width: 860px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .wrap {
+        padding: 16px 12px 32px;
+      }
+      .card,
+      .hero {
+        padding: 16px;
+      }
+      .keyword {
+        font-size: 21px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>進路入力判定ナビ</h1>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2 class="section-title">入力して判定する</h2>
+        <p class="subtle">例：通信制大学、専門学校、高卒求人、公務員、アルバイト、浪人、留学</p>
+
+        <div class="controls">
+          <div>
+            <label class="field-label" for="keywordInput">進路キーワード</label>
+            <div class="input-row">
+              <input id="keywordInput" type="text" placeholder="キーワードを入力">
+              <button id="judgeButton" class="primary-btn" type="button">判定する</button>
+              <button id="resetButton" class="ghost-btn" type="button">リセット</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="field-label">カテゴリで絞る</div>
+            <div id="filterChips" class="chip-row"></div>
+          </div>
+
+          <div>
+            <div class="field-label">よく使うケース</div>
+            <div id="quickCases" class="quick-groups"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="card">
+        <h2 class="section-title">判定結果</h2>
+        <div id="resultArea" class="empty">左側でキーワードを入力するか、よく使うケースを押してください。</div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const patterns = [{"keyword": "大学", "category": "進学", "fields": [{"label": "区分", "value": "進学"}, {"label": "進学区分", "value": "大学"}, {"label": "志望先", "value": "大学の正式名称を入力"}, {"label": "学部", "value": "必須"}, {"label": "学科・専攻・コース", "value": "必須"}, {"label": "受験区分", "value": "実際の受験区分を入力"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "志望先・学部・学科は正式名称で確認してください。"}]}, {"keyword": "短期大学", "category": "進学", "fields": [{"label": "区分", "value": "進学"}, {"label": "進学区分", "value": "短期大学"}, {"label": "志望先", "value": "短期大学の正式名称を入力"}, {"label": "学部", "value": "ある場合のみ入力"}, {"label": "学科・専攻・コース", "value": "必須"}, {"label": "受験区分", "value": "実際の受験区分を入力"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "志望先・学科は正式名称で確認してください。"}]}, {"keyword": "大学・短期大学（通信制）", "category": "進学", "fields": [{"label": "区分", "value": "進学"}, {"label": "進学区分", "value": "大学・短期大学（通信制）"}, {"label": "志望先", "value": "通信制大学・通信制短大の正式名称を入力"}, {"label": "学部", "value": "必須"}, {"label": "学科・専攻・コース", "value": "必須"}, {"label": "受験区分", "value": "実際の受験区分を入力"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "通信制大学は区分を「大学」ではなく「大学・短期大学（通信制）」にしてください。"}]}, {"keyword": "専修学校（専門課程）", "category": "進学", "fields": [{"label": "区分", "value": "進学"}, {"label": "進学区分", "value": "専修学校（専門課程）"}, {"label": "志望先", "value": "学校の正式名称を入力"}, {"label": "学部", "value": "ある場合のみ入力"}, {"label": "学科・専攻・コース", "value": "必須"}, {"label": "受験区分", "value": "実際の受験区分を入力"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "大半の専門学校はここです。〇〇大学校でも専門学校扱いのことがあるため正式区分を確認してください。"}]}, {"keyword": "専修学校（一般課程）", "category": "進学", "fields": [{"label": "区分", "value": "進学"}, {"label": "進学区分", "value": "専修学校（一般課程）"}, {"label": "志望先", "value": "学校の正式名称を入力"}, {"label": "学部", "value": "通常は不要"}, {"label": "学科・専攻・コース", "value": "ある場合は入力"}, {"label": "受験区分", "value": "実際の受験区分を入力"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "代ゼミなど、専修学校一般課程に当たる予備校は「進学」です。"}]}, {"keyword": "各種学校", "category": "進学", "fields": [{"label": "区分", "value": "進学"}, {"label": "進学区分", "value": "各種学校"}, {"label": "志望先", "value": "学校の正式名称を入力"}, {"label": "学部", "value": "ある場合のみ入力"}, {"label": "学科・専攻・コース", "value": "ある場合は入力"}, {"label": "受験区分", "value": "実際の受験区分を入力"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "駿台・河合塾や無認可スクールの一部は各種学校です。入学資格や学校種別を確認してください。"}]}, {"keyword": "職業訓練校", "category": "進学", "fields": [{"label": "区分", "value": "進学"}, {"label": "進学区分", "value": "職業訓練校"}, {"label": "志望先", "value": "学校の正式名称を入力"}, {"label": "学部", "value": "不要"}, {"label": "学科・専攻・コース", "value": "必須"}, {"label": "受験区分", "value": "一般"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "職業訓練校は進学扱いです。入試区分は「一般」を選択します。"}]}, {"keyword": "予備校（要判定）", "category": "その他", "fields": [{"label": "判断のしかた", "value": "まず学校法人かどうか、専修学校一般課程・各種学校に当たるかを確認"}, {"label": "進学になる場合", "value": "専修学校（一般課程）または各種学校"}, {"label": "その他になる場合", "value": "浪人（大学）・浪人（専門）・浪人（就職）のいずれか"}, {"label": "進路決定", "value": "実際の最終区分に合わせて入力"}, {"label": "注意", "value": "予備校は一律ではありません。学校法人の予備校は進学、そうでない予備校はその他になる場合があります。"}]}, {"keyword": "正社員（高卒求人）", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "会社の正式名称を入力"}, {"label": "業種", "value": "必須"}, {"label": "職種", "value": "必須"}, {"label": "就職状況", "value": "無期雇用労働者　（契約社員・短期派遣・パートなら有期雇用労働者）"}, {"label": "都道府県", "value": "勤務先の都道府県"}, {"label": "受験区分", "value": "高卒求人"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "学校斡旋の高校新卒求人を利用した場合です。"}]}, {"keyword": "正社員（一般求人）", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "会社名または屋号を入力"}, {"label": "業種", "value": "必須"}, {"label": "職種", "value": "必須"}, {"label": "就職状況", "value": "無期雇用労働者　（契約社員や1年以内の派遣社員は有期雇用労働者）"}, {"label": "都道府県", "value": "勤務先の都道府県"}, {"label": "受験区分", "value": "一般求人"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "学校を介さず自分で見つけた就職先はここです。"}]}, {"keyword": "公務員", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "勤務先の正式名称を入力"}, {"label": "業種", "value": "公務"}, {"label": "職種", "value": "必須　（警察・消防・自衛隊は「保安職業従事者」）"}, {"label": "就職状況", "value": "無期雇用労働者　（任期付きなら有期雇用労働者）"}, {"label": "都道府県", "value": "勤務先の都道府県"}, {"label": "受験区分", "value": "公務員試験"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "中卒で公務員試験に合格し現職を続ける場合は「現職継続」です。"}]}, {"keyword": "現職継続", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "現在の勤務先の正式名称を入力"}, {"label": "業種", "value": "必須"}, {"label": "職種", "value": "必須"}, {"label": "就職状況", "value": "無期雇用労働者　（契約社員や短期派遣なら有期雇用労働者）"}, {"label": "都道府県", "value": "勤務先の都道府県"}, {"label": "受験区分", "value": "現職継続"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "在学中の仕事を卒業後も続ける場合です。アルバイト・パート継続は「アルバイト」です。"}]}, {"keyword": "アルバイト（フルタイム）", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "アルバイト"}, {"label": "業種", "value": "入力必要"}, {"label": "職種", "value": "入力必要"}, {"label": "就職状況", "value": "有期雇用労働者"}, {"label": "都道府県", "value": "入力必要"}, {"label": "受験区分", "value": "アルバイト（フルタイム）"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "フルタイムは「1年以上の就業」かつ「週合計30時間以上」です。正社員に昇格する場合は一般就職です。"}]}, {"keyword": "アルバイト（短時間）", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "アルバイト"}, {"label": "業種", "value": "入力不要"}, {"label": "職種", "value": "入力不要"}, {"label": "就職状況", "value": "有期雇用労働者"}, {"label": "都道府県", "value": "入力不要"}, {"label": "受験区分", "value": "アルバイト（短時間）"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "在学中のアルバイト継続や短時間勤務はこちらです。"}]}, {"keyword": "契約社員", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "会社の正式名称を入力"}, {"label": "業種", "value": "高卒求人・一般求人・現職継続の文脈に合わせて入力"}, {"label": "職種", "value": "高卒求人・一般求人・現職継続の文脈に合わせて入力"}, {"label": "就職状況", "value": "有期雇用労働者"}, {"label": "都道府県", "value": "勤務先の都道府県"}, {"label": "受験区分", "value": "高卒求人 / 一般求人 / 現職継続 のどれかを実態で選択"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "契約社員は単独カテゴリではなく、就職状況だけ「有期雇用労働者」にします。"}]}, {"keyword": "派遣社員", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "派遣先ではなく派遣元企業名を入力"}, {"label": "業種", "value": "原則入力不要"}, {"label": "職種", "value": "原則入力不要"}, {"label": "就職状況", "value": "有期雇用労働者"}, {"label": "都道府県", "value": "原則入力不要"}, {"label": "受験区分", "value": "一般求人 または 現職継続 など実態に合わせて選択"}, {"label": "合否", "value": "合格"}, {"label": "備考", "value": "派遣（1年以内）など具体的に入力"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "派遣社員も単独カテゴリではなく文脈判定です。短期派遣は有期雇用労働者です。"}]}, {"keyword": "臨時労働者", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "短期アルバイト または 日雇労働者"}, {"label": "業種", "value": "入力不要"}, {"label": "職種", "value": "入力不要"}, {"label": "就職状況", "value": "臨時労働者"}, {"label": "都道府県", "value": "入力不要"}, {"label": "受験区分", "value": "アルバイト（短時間）または アルバイト（フルタイム）"}, {"label": "合否", "value": "合格"}, {"label": "備考", "value": "必要に応じて日雇い・短期などを記載"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "日雇い労働者や1か月以内の短期アルバイトが該当します。"}]}, {"keyword": "自営", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "会社名または屋号を入力　（屋号がなければ仕事内容）"}, {"label": "業種", "value": "必須"}, {"label": "職種", "value": "必須"}, {"label": "就職状況", "value": "無期雇用労働者"}, {"label": "都道府県", "value": "勤務先の都道府県"}, {"label": "受験区分", "value": "自営"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "個人事業主が対象です。アルバイト収入が中心の芸能活動などはアルバイトに分類します。"}]}, {"keyword": "家業", "category": "就職", "fields": [{"label": "区分", "value": "就職"}, {"label": "就職先名", "value": "家業の正式名称または屋号を入力"}, {"label": "業種", "value": "必須"}, {"label": "職種", "value": "必須"}, {"label": "就職状況", "value": "無期雇用労働者"}, {"label": "都道府県", "value": "勤務先の都道府県"}, {"label": "受験区分", "value": "家業"}, {"label": "合否", "value": "合格"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "親の仕事を引き継ぐ場合はこちらです。"}]}, {"keyword": "浪人（大学）", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "浪人（大学）"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "不要"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "大学・短大進学希望の浪人です。学校法人の予備校に通う場合は進学扱いになることがあります。"}]}, {"keyword": "浪人（専門）", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "浪人（専門）"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "不要"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "1年後に専門学校進学を目指す場合です。"}]}, {"keyword": "浪人（就職）", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "浪人（就職）"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "必要に応じて就活状況を入力"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "就職先が決まらないまま卒業し、卒業後も就活を続ける場合です。"}]}, {"keyword": "留学（確定）", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "留学"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "不要"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "留学先が確定している場合のみ使用します。"}]}, {"keyword": "その他（留学予定・未確定）", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "その他"}, {"label": "詳細", "value": "例：アメリカに留学予定"}, {"label": "備考", "value": "必要に応じて受験予定・状況を入力"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "留学先が未確定・未合格なら「留学」ではなく「その他」です。"}]}, {"keyword": "就労移行支援施設", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "就労移行支援施設"}, {"label": "詳細", "value": "必要に応じてA型・B型などを入力"}, {"label": "備考", "value": "不要"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "原則として障がい者手帳が必要な施設です。"}]}, {"keyword": "病気療養", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "病気療養"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "必要に応じて状況を入力"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "病気が原因で卒業後の進路が未決定の場合です。"}]}, {"keyword": "家事手伝い", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "家事手伝い"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "必要に応じて状況を入力"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "卒業後に定職に就かず、家の手伝いをする場合です。"}]}, {"keyword": "育児", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "育児"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "必要に応じて復帰予定などを入力"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "子育て優先の場合です。"}]}, {"keyword": "主婦", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "主婦"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "必要に応じて状況を入力"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "小さい子どもの育児以外の理由で主婦となる場合です。"}]}, {"keyword": "その他", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "その他"}, {"label": "詳細", "value": "卒業時点の状況を具体的に入力"}, {"label": "備考", "value": "必要に応じて補足を入力"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "上記以外のケースです。ニート・引きこもり等もここに分類します。"}]}, {"keyword": "未定・不明", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "未定・不明"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "不要"}, {"label": "進路決定", "value": "決定　（最終進路のみ）"}, {"label": "注意", "value": "できる限り使用しないでください。不明は統計上、失踪や死亡にカウントされるためです。"}]}, {"keyword": "卒業延期", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "卒業延期"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "卒業目途などが分かれば入力"}, {"label": "進路決定", "value": "【注意】 進路決定チェックNG"}, {"label": "注意", "value": "進路決定欄は空白のまま追加します。卒業が決まった段階で改めて進路入力します。"}]}, {"keyword": "休学予定・退学予定・学費未納", "category": "その他", "fields": [{"label": "区分", "value": "その他"}, {"label": "その他分類", "value": "休学予定・退学予定・学費未納"}, {"label": "詳細", "value": "不要"}, {"label": "備考", "value": "必要に応じて状況を入力"}, {"label": "進路決定", "value": "【注意】 進路決定チェックNG"}, {"label": "注意", "value": "このケースは進路決定欄を空白のままにします。"}]}];
+    const aliasMap = {"通信制大学": "大学・短期大学（通信制）", "通信制短大": "大学・短期大学（通信制）", "専門学校": "専修学校（専門課程）", "短大": "短期大学", "職訓": "職業訓練校", "高卒求人": "正社員（高卒求人）", "一般求人": "正社員（一般求人）", "契約社員": "契約社員", "派遣社員": "派遣社員", "短期アルバイト": "臨時労働者", "日雇い": "臨時労働者", "日雇労働者": "臨時労働者", "個人事業主": "自営", "家の仕事": "家業", "予備校": "予備校（要判定）", "留学予定": "その他（留学予定・未確定）", "留学未確定": "その他（留学予定・未確定）", "未定/不明": "未定・不明", "未定": "未定・不明", "不明": "未定・不明"};
+    const quickCases = {"進学": ["大学", "短期大学", "大学・短期大学（通信制）", "専修学校（専門課程）", "専修学校（一般課程）", "職業訓練校", "各種学校", "予備校（要判定）"], "就職": ["正社員（高卒求人）", "正社員（一般求人）", "公務員", "現職継続", "アルバイト（フルタイム）", "アルバイト（短時間）", "契約社員", "派遣社員", "臨時労働者", "自営", "家業"], "その他": ["浪人（大学）", "浪人（専門）", "浪人（就職）", "留学（確定）", "その他（留学予定・未確定）", "就労移行支援施設", "病気療養", "家事手伝い", "育児", "主婦", "その他", "未定・不明", "卒業延期", "休学予定・退学予定・学費未納"]};
+
+    const keywordInput = document.getElementById('keywordInput');
+    const judgeButton = document.getElementById('judgeButton');
+    const resetButton = document.getElementById('resetButton');
+    const resultArea = document.getElementById('resultArea');
+    const quickCasesArea = document.getElementById('quickCases');
+    const filterChipsArea = document.getElementById('filterChips');
+
+    const filterLabels = ['すべて', '進学', '就職', 'その他'];
+    let currentFilter = 'すべて';
+
+    function normalizeText(value) {
+      return String(value || '')
+        .trim()
+        .replace(/\s+/g, '')
+        .replace(/\(/g, '（')
+        .replace(/\)/g, '）')
+        .replace(/[／]/g, '/')
+        .replace(/[　]/g, '');
+    }
+
+    function getCategoryBadgeClass(category) {
+      if (category === '進学') return 'progress';
+      if (category === '就職') return 'job';
+      return 'other';
+    }
+
+    function getPatternByKeyword(keyword) {
+      const direct = patterns.find(function(item) {
+        return item.keyword === keyword;
+      });
+      return direct || null;
+    }
+
+    function resolveKeyword(rawKeyword) {
+      const cleaned = normalizeText(rawKeyword);
+      if (!cleaned) return '';
+
+      const direct = patterns.find(function(item) {
+        return normalizeText(item.keyword) === cleaned;
+      });
+      if (direct) return direct.keyword;
+
+      const aliasEntry = Object.keys(aliasMap).find(function(alias) {
+        return normalizeText(alias) === cleaned;
+      });
+      if (aliasEntry) return aliasMap[aliasEntry];
+
+      return rawKeyword.trim();
+    }
+
+    function findCandidates(rawKeyword) {
+      const cleaned = normalizeText(rawKeyword);
+      if (!cleaned) return [];
+
+      const candidates = patterns.filter(function(item) {
+        const keyword = normalizeText(item.keyword);
+        if (currentFilter !== 'すべて' && item.category !== currentFilter) {
+          return false;
+        }
+        return keyword.indexOf(cleaned) !== -1 || cleaned.indexOf(keyword) !== -1;
+      });
+
+      return candidates.slice(0, 8);
+    }
+
+    function renderFilters() {
+      filterChipsArea.textContent = '';
+      filterLabels.forEach(function(label) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = label === currentFilter ? 'chip active' : 'chip';
+        button.textContent = label;
+        button.addEventListener('click', function() {
+          currentFilter = label;
+          renderFilters();
+          renderQuickCases();
+        });
+        filterChipsArea.appendChild(button);
+      });
+    }
+
+    function renderQuickCases() {
+      quickCasesArea.textContent = '';
+      const groupsToShow = currentFilter === 'すべて'
+        ? ['進学', '就職', 'その他']
+        : [currentFilter];
+
+      groupsToShow.forEach(function(groupName) {
+        const wrapper = document.createElement('div');
+
+        const title = document.createElement('h3');
+        title.className = 'group-title';
+        title.textContent = groupName;
+        wrapper.appendChild(title);
+
+        const row = document.createElement('div');
+        row.className = 'chip-row';
+
+        (quickCases[groupName] || []).forEach(function(keyword) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'chip';
+          button.textContent = keyword;
+          button.addEventListener('click', function() {
+            keywordInput.value = keyword;
+            showResult(keyword);
+          });
+          row.appendChild(button);
+        });
+
+        wrapper.appendChild(row);
+        quickCasesArea.appendChild(wrapper);
+      });
+    }
+
+    function createRuleBox(titleText, bodyText, type) {
+      const box = document.createElement('div');
+      box.className = type ? 'rule-box ' + type : 'rule-box';
+
+      const title = document.createElement('div');
+      title.className = 'field-label';
+      title.textContent = titleText;
+      box.appendChild(title);
+
+      const body = document.createElement('div');
+      body.textContent = bodyText;
+      box.appendChild(body);
+
+      return box;
+    }
+
+    function renderPattern(pattern, sourceText) {
+      resultArea.textContent = '';
+
+      const header = document.createElement('div');
+      header.className = 'result-header';
+
+      const badge = document.createElement('span');
+      badge.className = 'badge ' + getCategoryBadgeClass(pattern.category);
+      badge.textContent = pattern.category;
+      header.appendChild(badge);
+
+      const source = document.createElement('span');
+      source.className = 'subtle';
+      source.textContent = '入力：' + sourceText;
+      header.appendChild(source);
+
+      resultArea.appendChild(header);
+
+      const keyword = document.createElement('div');
+      keyword.className = 'keyword';
+      keyword.textContent = pattern.keyword;
+      resultArea.appendChild(keyword);
+
+      const table = document.createElement('table');
+      table.className = 'kv-table';
+
+      pattern.fields.forEach(function(field) {
+        const row = document.createElement('tr');
+        const th = document.createElement('th');
+        const td = document.createElement('td');
+        th.textContent = field.label;
+        td.textContent = field.value || '不要';
+        row.appendChild(th);
+        row.appendChild(td);
+        table.appendChild(row);
+      });
+
+      resultArea.appendChild(table);
+
+      const caution = extractCaution(pattern);
+      if (caution) {
+        const type = caution.indexOf('原則使用不可') !== -1 ? 'danger' : 'warning';
+        resultArea.appendChild(createRuleBox('ケース別の注意', caution, type));
+      }
+    }
+
+    function extractCaution(pattern) {
+      const fields = pattern.fields;
+      for (let i = 0; i < fields.length; i += 1) {
+        const text = String(fields[i].value || '');
+        if (text.indexOf('※') !== -1 || text.indexOf('注意') !== -1 || text.indexOf('原則使用不可') !== -1) {
+          return text;
+        }
+      }
+      return '';
+    }
+
+    function renderCandidates(rawKeyword, candidates) {
+      resultArea.textContent = '';
+
+      const message = document.createElement('div');
+      message.className = 'empty';
+      message.textContent = '完全一致が見つかりませんでした。近い候補を選んでください。';
+      resultArea.appendChild(message);
+
+      if (rawKeyword) {
+        const source = document.createElement('div');
+        source.className = 'subtle';
+        source.style.marginTop = '8px';
+        source.textContent = '入力：' + rawKeyword;
+        resultArea.appendChild(source);
+      }
+
+      const list = document.createElement('div');
+      list.className = 'match-list';
+
+      candidates.forEach(function(candidate) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'match-btn';
+        button.textContent = candidate.keyword + ' [' + candidate.category + ']';
+        button.addEventListener('click', function() {
+          keywordInput.value = candidate.keyword;
+          renderPattern(candidate, candidate.keyword);
+        });
+        list.appendChild(button);
+      });
+
+      resultArea.appendChild(list);
+    }
+
+    function showResult(rawKeyword) {
+      const inputValue = String(rawKeyword || '').trim();
+      if (!inputValue) {
+        resultArea.textContent = 'キーワードを入力してください。';
+        return;
+      }
+
+      const resolvedKeyword = resolveKeyword(inputValue);
+      const pattern = getPatternByKeyword(resolvedKeyword);
+
+      if (pattern && (currentFilter === 'すべて' || pattern.category === currentFilter)) {
+        renderPattern(pattern, inputValue);
+        return;
+      }
+
+      const candidates = findCandidates(inputValue);
+      if (candidates.length > 0) {
+        renderCandidates(inputValue, candidates);
+        return;
+      }
+
+      resultArea.textContent = '該当するパターンが見つかりませんでした。キーワードを変えるか、カテゴリを「すべて」にして試してください。';
+    }
+
+    function resetAll() {
+      keywordInput.value = '';
+      currentFilter = 'すべて';
+      renderFilters();
+      renderQuickCases();
+      resultArea.textContent = '左側でキーワードを入力するか、よく使うケースを押してください。';
+    }
+
+    judgeButton.addEventListener('click', function() {
+      showResult(keywordInput.value);
+    });
+
+    resetButton.addEventListener('click', function() {
+      resetAll();
+    });
+
+    keywordInput.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        showResult(keywordInput.value);
+      }
+    });
+
+    renderFilters();
+    renderQuickCases();
+  </script>
+</body>
+</html>
