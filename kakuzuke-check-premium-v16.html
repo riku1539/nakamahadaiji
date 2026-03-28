@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>オリジナル格付けチェック v16</title>
+<style>
+html,body{margin:0;padding:0;height:100%;background:#0d0d0d;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif}
+iframe{width:100%;height:100%;border:none;display:block;background:#0d0d0d}
+.loading{position:fixed;inset:0;display:grid;place-items:center;color:#f3d892;background:radial-gradient(circle at top,#2a2a2a 0%,#151515 35%,#0d0d0d 100%);font-weight:800;letter-spacing:.08em;z-index:10}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div id="loading" class="loading">読み込み中…</div>
+<iframe id="appFrame" src="./kakuzuke-check-premium-v15.html?mode=host"></iframe>
+<script>
+const frame=document.getElementById('appFrame');
+const loading=document.getElementById('loading');
+
+frame.addEventListener('load',()=>{
+  const win=frame.contentWindow;
+  const doc=frame.contentDocument;
+  if(!win||!doc)return;
+
+  loading.classList.add('hidden');
+
+  const style=doc.createElement('style');
+  style.textContent=`
+    body.mode-host .secret-stage .subtle,
+    body.mode-host .secret-stage .secret-lock,
+    body.mode-host .secret-stage .reveal-warning{
+      display:none !important;
+    }
+    body.mode-host .secret-stage{
+      padding-bottom:14px !important;
+    }
+    body.mode-host .admin-grid{
+      margin-top:12px !important;
+    }
+    body.mode-host .control-group h4{
+      font-size:16px !important;
+    }
+    .answer-visibility-box{
+      background:#141414;
+      border:1px solid rgba(255,223,127,.18);
+      border-radius:12px;
+      padding:12px;
+      margin-top:10px;
+      line-height:1.8;
+    }
+    .answer-visibility-box .row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      margin-top:8px;
+    }
+    .mini-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border-radius:999px;
+      padding:6px 10px;
+      font-weight:800;
+      font-size:13px;
+      border:1px solid rgba(255,255,255,.08);
+      background:#2b2b2b;
+      color:#fff;
+    }
+    .mini-pill.done{background:linear-gradient(180deg,#2ba45a,#1c7c41)}
+    .mini-pill.wait{background:linear-gradient(180deg,#555,#2e2e2e)}
+    .rank-move-flash{
+      animation:rankMoveFlash 0.9s ease;
+    }
+    @keyframes rankMoveFlash{
+      0%{transform:scale(1); box-shadow:0 0 0 0 rgba(255,237,141,0)}
+      35%{transform:scale(1.03); box-shadow:0 0 0 4px rgba(255,237,141,.58)}
+      100%{transform:scale(1); box-shadow:0 0 0 0 rgba(255,237,141,0)}
+    }
+  `;
+  doc.head.appendChild(style);
+
+  function ensureVisibilityBox(){
+    const statusCard=doc.querySelector('.admin-grid .card.host-only');
+    if(!statusCard)return null;
+    let box=doc.getElementById('answer-visibility-box');
+    if(box)return box;
+    box=doc.createElement('div');
+    box.id='answer-visibility-box';
+    box.className='answer-visibility-box';
+    box.innerHTML=`
+      <div><strong>回答状況</strong></div>
+      <div id="answer-visibility-summary" class="row"></div>
+      <div id="answer-visibility-list" class="row"></div>
+    `;
+    statusCard.appendChild(box);
+    return box;
+  }
+
+  function updateAnswerVisibility(){
+    const box=ensureVisibilityBox();
+    if(!box||!Array.isArray(win.teams))return;
+    const summary=doc.getElementById('answer-visibility-summary');
+    const list=doc.getElementById('answer-visibility-list');
+    if(!summary||!list)return;
+    const answered=win.teams.filter(t=>t.answer).length;
+    const waiting=win.teams.length-answered;
+    summary.innerHTML=`
+      <span class="mini-pill done">回答済み ${answered}</span>
+      <span class="mini-pill wait">未回答 ${waiting}</span>
+    `;
+    list.innerHTML='';
+    win.teams.forEach((team,idx)=>{
+      const el=doc.createElement('span');
+      const state=team.answer ? `回答済み${team.answer ? '：'+team.answer : ''}` : '未回答';
+      el.className='mini-pill ' + (team.answer ? 'done' : 'wait');
+      el.textContent=`${team.name} ${state}`;
+      if(idx===win.currentTeamIndex){
+        el.style.outline='2px solid rgba(255,237,141,.65)';
+      }
+      list.appendChild(el);
+    });
+  }
+
+  function flashRankMove(){
+    const currentIndex=win.currentTeamIndex;
+    const rows=doc.querySelectorAll('#grade-body .grade-row');
+    const row=rows[currentIndex];
+    if(!row)return;
+    row.classList.remove('rank-move-flash');
+    void row.offsetWidth;
+    row.classList.add('rank-move-flash');
+  }
+
+  const originalRenderBoard=win.renderBoard;
+  win.renderBoard=function(){
+    const result=originalRenderBoard.apply(this,arguments);
+    updateAnswerVisibility();
+    return result;
+  };
+
+  const originalSelectAnswer=win.selectAnswer;
+  win.selectAnswer=function(choice){
+    const result=originalSelectAnswer.apply(this,arguments);
+    updateAnswerVisibility();
+    return result;
+  };
+
+  const originalResetCurrentQuestion=win.resetCurrentQuestion;
+  win.resetCurrentQuestion=function(){
+    const result=originalResetCurrentQuestion.apply(this,arguments);
+    updateAnswerVisibility();
+    return result;
+  };
+
+  const originalNextQuestion=win.nextQuestion;
+  win.nextQuestion=function(){
+    const result=originalNextQuestion.apply(this,arguments);
+    updateAnswerVisibility();
+    return result;
+  };
+
+  const originalJudgeWithSettings=win.judgeWithSettings;
+  win.judgeWithSettings=function(){
+    if(!Array.isArray(win.teams) || !win.teams[win.currentTeamIndex]){
+      return originalJudgeWithSettings.apply(this,arguments);
+    }
+    const beforeRank=win.teams[win.currentTeamIndex].rank;
+    const result=originalJudgeWithSettings.apply(this,arguments);
+    setTimeout(()=>{
+      const afterTeam=win.teams[win.currentTeamIndex];
+      if(afterTeam && afterTeam.rank !== beforeRank){
+        flashRankMove();
+      }
+      updateAnswerVisibility();
+    },1350);
+    return result;
+  };
+
+  // 初回反映
+  setTimeout(()=>{
+    try{
+      updateAnswerVisibility();
+    }catch(e){}
+  },200);
+});
+</script>
+</body>
+</html>
