@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>オリジナル格付けチェック v28</title>
+<style>
+html,body{margin:0;padding:0;height:100%;background:#0d0d0d;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif}
+iframe{width:100%;height:100%;border:none;display:block;background:#0d0d0d}.loading{position:fixed;inset:0;display:grid;place-items:center;color:#f3d892;background:radial-gradient(circle at top,#2a2a2a 0%,#151515 35%,#0d0d0d 100%);font-weight:800;letter-spacing:.08em;z-index:10}.hidden{display:none}
+</style>
+</head>
+<body>
+<div id="loading" class="loading">読み込み中…</div>
+<iframe id="outerFrame"></iframe>
+<script>
+const loading=document.getElementById('loading');
+const outerFrame=document.getElementById('outerFrame');
+outerFrame.src='./kakuzuke-check-premium-v27.html'+window.location.search;
+
+outerFrame.addEventListener('load',()=>{
+  const outerDoc=outerFrame.contentDocument;
+  const innerFrame=outerDoc && outerDoc.getElementById('appFrame');
+  if(!innerFrame){ loading.classList.add('hidden'); return; }
+
+  function patchInner(){
+    const innerDoc=innerFrame.contentDocument;
+    const innerWin=innerFrame.contentWindow;
+    if(!innerDoc||!innerWin)return;
+    loading.classList.add('hidden');
+
+    if(!innerDoc.getElementById('v28-patch-style')){
+      const style=innerDoc.createElement('style');
+      style.id='v28-patch-style';
+      style.textContent=`
+        .shared-question-note{
+          margin-top:10px;
+          padding:10px 12px;
+          border-radius:12px;
+          background:linear-gradient(180deg,#2b2417,#17120b);
+          border:1px solid rgba(255,223,127,.18);
+          color:#f3d892;
+          font-size:13px;
+          font-weight:800;
+          line-height:1.6;
+        }
+        .shared-question-note.locked{
+          background:linear-gradient(180deg,#3a2e17,#1f160a);
+          color:#fff1b3;
+        }
+        .question-locked input,
+        .question-locked select,
+        .question-locked button[onclick="applyQuestionSettings()"]{
+          opacity:.58 !important;
+          pointer-events:none !important;
+          filter:grayscale(.15);
+        }
+      `;
+      innerDoc.head.appendChild(style);
+    }
+
+    function getState(){
+      try{
+        return typeof innerWin.__getKakuzukeState==='function' ? innerWin.__getKakuzukeState() : null;
+      }catch(e){
+        return null;
+      }
+    }
+
+    function anyAnsweredInCurrentQuestion(){
+      const state=getState();
+      if(!state || !Array.isArray(state.teams)) return false;
+      return state.teams.some(team=>team.answer);
+    }
+
+    function ensureSharedQuestionNote(){
+      const settingsCard=innerDoc.querySelector('#answer-screen .card.host-only');
+      if(!settingsCard) return null;
+      let note=innerDoc.getElementById('shared-question-note');
+      if(note) return note;
+      note=innerDoc.createElement('div');
+      note.id='shared-question-note';
+      note.className='shared-question-note';
+      settingsCard.appendChild(note);
+      return note;
+    }
+
+    function updateQuestionLockUI(){
+      const settingsCard=innerDoc.querySelector('#answer-screen .card.host-only');
+      if(!settingsCard) return;
+      const note=ensureSharedQuestionNote();
+      const locked=anyAnsweredInCurrentQuestion();
+      settingsCard.classList.toggle('question-locked', locked);
+      if(note){
+        note.className='shared-question-note' + (locked ? ' locked' : '');
+        note.textContent = locked
+          ? 'この問題は全チーム共通です。すでに回答が始まっているため、設定変更は次の問題から反映してください。'
+          : 'この問題の設定は、全チーム共通で使用されます。';
+      }
+    }
+
+    function showLockedToast(){
+      let toast=innerDoc.getElementById('apply-toast');
+      if(!toast){
+        toast=innerDoc.createElement('div');
+        toast.id='apply-toast';
+        toast.className='apply-toast';
+        innerDoc.body.appendChild(toast);
+      }
+      toast.textContent='この問題は全チーム共通です。次の問題で変更してください';
+      toast.classList.add('show');
+      clearTimeout(innerWin.__applyToastTimer);
+      innerWin.__applyToastTimer=setTimeout(()=>toast.classList.remove('show'),1800);
+    }
+
+    const originalApply=innerWin.applyQuestionSettings;
+    if(!innerWin.__v28_apply_guard && typeof originalApply==='function'){
+      innerWin.__v28_apply_guard=true;
+      innerWin.applyQuestionSettings=function(){
+        if(anyAnsweredInCurrentQuestion()){
+          updateQuestionLockUI();
+          showLockedToast();
+          return;
+        }
+        const result=originalApply.apply(this,arguments);
+        updateQuestionLockUI();
+        return result;
+      };
+    }
+
+    const originalSelectAnswer=innerWin.selectAnswer;
+    if(!innerWin.__v28_select_patched && typeof originalSelectAnswer==='function'){
+      innerWin.__v28_select_patched=true;
+      innerWin.selectAnswer=function(choice){
+        const result=originalSelectAnswer.apply(this,arguments);
+        setTimeout(updateQuestionLockUI,0);
+        return result;
+      };
+    }
+
+    const originalNextQuestion=innerWin.nextQuestion;
+    if(!innerWin.__v28_nextq_patched && typeof originalNextQuestion==='function'){
+      innerWin.__v28_nextq_patched=true;
+      innerWin.nextQuestion=function(){
+        const result=originalNextQuestion.apply(this,arguments);
+        setTimeout(updateQuestionLockUI,0);
+        return result;
+      };
+    }
+
+    const originalResetCurrent=innerWin.resetCurrentQuestion;
+    if(!innerWin.__v28_reset_patched && typeof originalResetCurrent==='function'){
+      innerWin.__v28_reset_patched=true;
+      innerWin.resetCurrentQuestion=function(){
+        const result=originalResetCurrent.apply(this,arguments);
+        setTimeout(updateQuestionLockUI,0);
+        return result;
+      };
+    }
+
+    const originalRenderBoard=innerWin.renderBoard;
+    if(!innerWin.__v28_render_patched && typeof originalRenderBoard==='function'){
+      innerWin.__v28_render_patched=true;
+      innerWin.renderBoard=function(){
+        const result=originalRenderBoard.apply(this,arguments);
+        updateQuestionLockUI();
+        return result;
+      };
+    }
+
+    updateQuestionLockUI();
+  }
+
+  innerFrame.addEventListener('load',patchInner,{once:false});
+  patchInner();
+});
+</script>
+</body>
+</html>
